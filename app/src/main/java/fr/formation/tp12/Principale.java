@@ -1,10 +1,18 @@
 package fr.formation.tp12;
 
+import android.content.Intent;
 import android.database.sqlite.SQLiteException;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.RecyclerView;
+import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
+
+import java.util.ArrayList;
 import java.util.List;
 
 import fr.formation.tp12.database.datasource.DataSource;
@@ -13,26 +21,40 @@ import fr.formation.tp12.database.modele.User;
 public class Principale extends AppCompatActivity {
 
     DataSource<User> dataSource;
+    FloatingActionButton bouton_ajouter;
+    RecyclerView rview;
+    RecyclerViewAdapter adapter;
+    private int versionDB = 1;
+    private List<User> utilisateurs = new ArrayList<>();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_principale);
+        bouton_ajouter = ((FloatingActionButton) findViewById(R.id.fab));
 
-        // Create or retrieve the database
+        /*// Create or retrieve the database
         try {
-            dataSource = new DataSource<>(this, User.class);
+            dataSource = new DataSource<>(this, User.class, versionDB);
         } catch (Exception e) {
             e.printStackTrace();
-        }
+        }*/
+        rview = (RecyclerView) findViewById(R.id.userList);
 
-        // open the database
+        adapter = new RecyclerViewAdapter(utilisateurs,android.R.layout.simple_list_item_1);
+        rview.setAdapter(adapter);
+
+
+        Intent intent = getIntent();
+        String nom = intent.getStringExtra("nomUser");
+
+        /*// open the database
         openDB();
 
         // Insert a new record
         // -------------------
         User user = new User();
-        user.setNom("Tintin");
+        user.setNom(nom);
         try {
             insertRecord(user);
         } catch (Exception e) {
@@ -46,31 +68,66 @@ public class Principale extends AppCompatActivity {
             updateRecord(user);
         } catch (Exception e) {
             e.printStackTrace();
-        }
+        }*/
 
         // Query that line
         // ---------------
-        queryTheDatabase();
+         //queryTheDatabase();
 
         // And then delete it:
         // -------------------
         //deleteRecord(user);
+
+        bouton_ajouter.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent i = new Intent(Principale.this, Secondaire.class);
+                startActivityForResult(i, 2);
+
+            }
+
+        });
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        try {
+            if (dataSource == null) {
+                dataSource = new DataSource<>(this, User.class, versionDB);
+                dataSource.open();
+            }
+        } catch (Exception e) {
+            // Traiter le cas !
+            e.printStackTrace();
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        openDB();
+        chargerUtilisateurs();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        closeDB();
+        //closeDB();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        try {
+            dataSource.close();
+        } catch (Exception e) {
+            // Traiter le cas !
+            e.printStackTrace();
+        }
     }
 
     public void openDB() throws SQLiteException {
-        dataSource.getDB();
+        dataSource.open();
     }
 
     public void closeDB() {
@@ -148,4 +205,44 @@ public class Principale extends AppCompatActivity {
                 Toast.LENGTH_LONG).show();
 
     }
+
+    private void chargerUtilisateurs() {
+        // On charge les données depuis la base.
+        try {
+            List<User> users = dataSource.readAll();
+            utilisateurs.clear();
+            utilisateurs.addAll(users);
+            adapter.notifyDataSetChanged();
+        } catch (Exception e) {
+            // Que faire ?
+            e.printStackTrace();
+        }
+    }
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        if (resultCode == 2) {
+
+            String flux = data.getStringExtra("nomUser"); // Tester si pas null ;-)
+            User utilisateur = new Gson().fromJson(flux, User.class);
+
+            try {
+                Log.e("Utilisateur", utilisateur.toString());
+                insertRecord(utilisateur);
+            } catch (Exception e) {
+                // Que faire :-(
+                e.printStackTrace();
+            }
+
+            // Indiquer un changement au RecycleView
+            chargerUtilisateurs();
+            //adapter.notifyDataSetChanged();
+
+        }
+
+    }
+
+
 }

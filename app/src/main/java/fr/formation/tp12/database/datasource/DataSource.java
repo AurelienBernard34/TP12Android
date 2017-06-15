@@ -14,18 +14,19 @@ public class DataSource<T extends Modele> {
     private SQLiteDatabase db;
     private T modele;
 
-    public DataSource(Context context, Class<T> clazz) throws Exception {
+    public DataSource(Context context, Class<T> clazz, int versionDB) throws Exception {
         this.modele = clazz.newInstance();
-        helper = new DBOpenHelper(context, modele);
+        helper = new DBOpenHelper(context, modele, versionDB);
     }
 
-    public SQLiteDatabase getDB() {
+    //à supprimer
+    /**public SQLiteDatabase getDB() {
         if (db == null) open();
         return db;
-    }
+    }*/
 
     public void open() throws SQLException {
-        db = helper.getWritableDatabase();
+       if (db == null) db = helper.getWritableDatabase();
     }
 
     public void close() {
@@ -52,7 +53,7 @@ public class DataSource<T extends Modele> {
         String[] allColumns = modele.getColumns();
 
         // select query
-        Cursor cursor = getDB().query(modele.getTable(), allColumns, null, null, null, null, null);
+        Cursor cursor = db.query(modele.getTable(), allColumns, null, null, null, null, null);
 
         // iterate on cursor and retreive result
         List<T> modeles = new ArrayList<>();

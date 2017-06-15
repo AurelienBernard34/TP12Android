@@ -8,7 +8,7 @@ class DBOpenHelper<T extends Modele> extends SQLiteOpenHelper {
 
     private Modele modele;
 
-    public DBOpenHelper(Context context, T modele) {
+    public DBOpenHelper(Context context, T modele, int versionDB) {
         super(context, modele.getDataBase(), null, 1);
         this.modele = modele;
     }
